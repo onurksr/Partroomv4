@@ -1,0 +1,42 @@
+[
+  {
+    "id": "film-interstellar",
+    "title": "Interstellar",
+    "year": 2014,
+    "clues": [
+      "Zaman dilimi farkı olan okyanus gezegeni",
+      "Kitaplıktan gönderilen yerçekimi mesajları",
+      "Endurance ve kara delik Gargantua"
+    ]
+  },
+  {
+    "id": "film-the-prestige",
+    "title": "The Prestige",
+    "year": 2006,
+    "clues": [
+      "İki rakip sihirbaz ve gizli günlük",
+      "Nikola Tesla ile elektrik deneyleri",
+      "Vaad, Dönüşüm ve Prestij"
+    ]
+  },
+  {
+    "id": "film-inception",
+    "title": "Inception",
+    "year": 2010,
+    "clues": [
+      "Rüya içinde rüya katmanları",
+      "Dönen totem",
+      "Zihne fikir yerleştirme operasyonu"
+    ]
+  },
+  {
+    "id": "film-zodiac",
+    "title": "Zodiac",
+    "year": 2007,
+    "clues": [
+      "San Francisco şifreli mektupları",
+      "Gazete karikatüristi ve dedektifin takibi",
+      "Yıllara yayılan çözülmemiş dosya"
+    ]
+  }
+]

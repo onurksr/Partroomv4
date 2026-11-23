@@ -1,0 +1,20 @@
+{
+  "wouldYouRather": [
+    "Her izlediğin filmin sonunu önceden bilmek mi, hiçbir filmin adını hatırlamamak mı?",
+    "Sadece gece yarısı uyanık kalabilmek mi, sadece sabah gün doğumunda uyanık kalabilmek mi?"
+  ],
+  "mostLikelyTo": [
+    "En zor bilmecede bile son saniyeye kadar vazgeçmeyen kişi kim?",
+    "Oyun ortasında kuralları en yaratıcı şekilde esneten kişi kim?"
+  ],
+  "imposterPairs": [
+    {
+      "common": "Sinema Salonu",
+      "imposter": "Ev Sineması"
+    },
+    {
+      "common": "Dedektif",
+      "imposter": "İllüzyonist"
+    }
+  ]
+}

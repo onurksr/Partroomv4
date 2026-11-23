@@ -1,0 +1,42 @@
+{
+  "trueFalse": [
+    {
+      "statement": "Satürn'ün yoğunluğu sudan düşüktür.",
+      "answer": true
+    },
+    {
+      "statement": "Ahtapotların üç kalbi vardır.",
+      "answer": true
+    },
+    {
+      "statement": "Büyük Çin Seddi uzaydan çıplak gözle net biçimde görülür.",
+      "answer": false
+    }
+  ],
+  "closestAnswer": [
+    {
+      "question": "Mars'ta bir gün yaklaşık kaç dakikadır?",
+      "answer": 1477,
+      "unit": "dk"
+    },
+    {
+      "question": "Standart bir dart tahtasında dıştan içe en yüksek tekli sayı kaçtır?",
+      "answer": 20,
+      "unit": "puan"
+    }
+  ],
+  "emojiGuesses": [
+    {
+      "emojis": "🚀🌌⏳📚",
+      "answer": "Interstellar"
+    },
+    {
+      "emojis": "🎩⚡👯‍♂️📖",
+      "answer": "The Prestige"
+    },
+    {
+      "emojis": "🌀💤🏢🧳",
+      "answer": "Inception"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "packName": "Karma Mod Ek Paketi",
+  "rounds": [
+    {
+      "modeId": "filmden-kareyi-bil",
+      "label": "Kare Avı"
+    },
+    {
+      "modeId": "emojiden-tahmin",
+      "label": "Emoji Şifresi"
+    },
+    {
+      "modeId": "dogru-yanlis",
+      "label": "Hızlı Karar"
+    },
+    {
+      "modeId": "en-yakin-cevap",
+      "label": "Sayı Tahmini"
+    }
+  ]
+}

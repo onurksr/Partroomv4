@@ -1,0 +1,14 @@
+[
+  {
+    "id": "bt-1",
+    "category": "Bonus",
+    "prompt": "Christopher Nolan'ın 'The Prestige' filminde illüzyonun üç aşaması hangi isimlerle anılır?",
+    "answer": "Vaad, Dönüşüm ve Prestij"
+  },
+  {
+    "id": "bt-2",
+    "category": "Bonus",
+    "prompt": "Standart bir 5x5 Codenames tahtasında kaç kart bulunur?",
+    "answer": "25 kart"
+  }
+]

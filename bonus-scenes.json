@@ -1,0 +1,43 @@
+[
+  {
+    "id": "bonus-1",
+    "title": "Bonus Sahne #1",
+    "answer": "Memento",
+    "aliases": [
+      "akil defteri",
+      "akıl defteri",
+      "memento"
+    ],
+    "frames": [
+      {
+        "label": "Kare 1 / 4",
+        "blur": 18,
+        "zoom: ": 1.36,
+        "zoom": 1.36,
+        "hint": "Kısa süreli hafıza kaybı ve Polaroid fotoğraflar...",
+        "caption": "Anılar silinirken notlar rehber olur"
+      },
+      {
+        "label": "Kare 2 / 4",
+        "blur": 11,
+        "zoom": 1.22,
+        "hint": "Vücuttaki dövmeler ve ters akan zaman kurgusu...",
+        "caption": "Her sahne bir önceki sorunun cevabına gider"
+      },
+      {
+        "label": "Kare 3 / 4",
+        "blur": 5,
+        "zoom": 1.09,
+        "hint": "Notlara güvenmek mi, hafızaya mı?",
+        "caption": "Gerçeğin parçaları birleştiriliyor"
+      },
+      {
+        "label": "Kare 4 / 4",
+        "blur": 0,
+        "zoom": 1.0,
+        "hint": "Şimdi nerede olduğumu hatırlamaya çalışıyorum...",
+        "caption": "Memento"
+      }
+    ]
+  }
+]

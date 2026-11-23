@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Parti Odası — Partroomv3</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+
+  <main class="container">
+    <section id="lobbyView">
+      <header class="hero">
+        <h1>Arkadaşlarını Topla, Oyunu Başlat!</h1>
+        <p class="subtitle">12 standart oyun ve Karma Mod ile tek odada eğlenceye başla.</p>
+      </header>
+
+      <div class="setup-stack">
+        <div class="card action-card">
+          <input
+            id="playerNameInput"
+            type="text"
+            class="text-input"
+            placeholder="Adın (ör. Onur)"
+            value="Onur"
+            maxlength="20"
+            autocomplete="nickname"
+          />
+          <button id="createRoomBtn" type="button" class="btn btn-amber">ODA OLUŞTUR</button>
+        </div>
+
+        <div class="card action-card">
+          <input
+            id="roomCodeInput"
+            type="text"
+            class="text-input code-input"
+            placeholder="O D A   K O D U"
+            maxlength="6"
+            autocomplete="off"
+          />
+          <button id="joinRoomBtn" type="button" class="btn btn-iris">ODAYA KATIL</button>
+        </div>
+      </div>
+
+      <section class="modes-section">
+        <h2 class="section-title">Oyun modları (12 Oyun)</h2>
+        <div id="modesGrid" class="modes-grid"></div>
+      </section>
+    </section>
+
+    <section id="roomView" class="hidden">
+      <div class="card room-topbar">
+        <div class="room-meta">
+          <span class="badge-code">ODA: <strong id="roomCodeBadge">-----</strong></span>
+          <span id="roomStatusBadge" class="badge-status">Lobide</span>
+        </div>
+
+        <div class="room-controls">
+          <button id="hostEndGameBtn" type="button" class="btn btn-danger hidden">Oyunu Bitir</button>
+          <button id="leaveRoomBtn" type="button" class="btn btn-ghost">Odadan Ayrıl</button>
+        </div>
+      </div>
+
+      <div class="room-layout">
+        <div class="room-main">
+          <div id="waitingPanel" class="card panel-card">
+            <h3>Seçili Mod: <span id="selectedModeName">Filmden Kareyi Bil!</span></h3>
+            <p class="muted" id="selectedModeDesc">Sahneler açıldıkça filmi tahmin et</p>
+            <div id="hostStartWrap" class="mt-16 hidden">
+              <button id="startGameBtn" type="button" class="btn btn-amber">OYUNU BAŞLAT</button>
+            </div>
+          </div>
+
+          <div id="filmGamePanel" class="card panel-card hidden">
+            <div class="game-header-row">
+              <div>
+                <div id="roundMeta" class="muted small-text">Tur 1 / 5 · Kare 1 / 4</div>
+                <h3 id="roundTitle">Sahne #1</h3>
+              </div>
+              <button id="nextFrameBtn" type="button" class="btn btn-iris btn-sm hidden">Sonraki Kareyi Aç</button>
+            </div>
+
+            <div class="frame-stage">
+              <div id="frameBox" class="frame-visual">
+                <span id="frameLabel" class="frame-pill">Kare 1 / 4</span>
+                <div id="frameCaption" class="frame-caption">Saniyelerin saatlere dönüştüğü o gezegen</div>
+                <div id="frameHint" class="frame-hint">Buzul gezegende dev dalgaların yükseldiği o gergin an...</div>
+              </div>
+            </div>
+
+            <div id="winnerBanner" class="winner-banner hidden"></div>
+
+            <div id="guessForm" class="guess-row">
+              <input
+                id="filmGuessInput"
+                type="text"
+                class="text-input guess-input"
+                placeholder="Film adını yaz..."
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="words"
+                spellcheck="false"
+              />
+              <button id="sendGuessBtn" type="button" class="btn btn-amber btn-sm">Tahmin Et</button>
+            </div>
+          </div>
+
+          <div id="genericGamePanel" class="card panel-card hidden">
+            <h3 id="genericModeTitle">Oyun Modu</h3>
+            <p id="genericModeDesc" class="muted"></p>
+            <p class="small-text mt-12">Yönetici istediği zaman sağ üstteki <strong>Oyunu Bitir</strong> butonu ile oyunu sonlandırabilir.</p>
+          </div>
+
+          <div id="gameEndedPanel" class="card panel-card hidden">
+            <h3>Oyun Sona Erdi</h3>
+            <p id="endReasonText" class="muted"></p>
+            <div id="finalAnswerBox" class="final-answer hidden"></div>
+            <div id="scoreboardList" class="scoreboard-list"></div>
+            <div id="hostRestartWrap" class="mt-16 hidden">
+              <button id="restartGameBtn" type="button" class="btn btn-amber">YENİ OYUN BAŞLAT</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="room-sidebar">
+          <div class="card panel-card">
+            <h3>Oyuncular (<span id="playerCount">0</span>)</h3>
+            <ul id="playersList" class="players-list"></ul>
+          </div>
+
+          <div class="card panel-card mt-16">
+            <h3>Oda Akışı</h3>
+            <ul id="feedList" class="feed-list"></ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div id="howToModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="card modal-card">
+      <div class="modal-head">
+        <h3 id="modalTitle">Nasıl oynanır?</h3>
+        <button id="closeModalBtn" type="button" class="icon-close" aria-label="Kapat">✕</button>
+      </div>
+      <p id="modalBody" class="muted"></p>
+      <div class="modal-foot">
+        <button id="modalSelectBtn" type="button" class="btn btn-iris btn-sm">Bu Modu Seç</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
