@@ -1,13 +1,27 @@
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 
-const PIXEL_POOL = require('./data/pixel-pool');
-const contentPack = require('./data/content');
-const extraContent = require('./extra-content');
-const bonusContent = require('./bonus-content');
+function safeRequire(relPath, fallback) {
+  try {
+    const fullPath = path.join(__dirname, relPath);
+    if (!fs.existsSync(fullPath)) return fallback;
+    return require(fullPath);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+const PIXEL_POOL = safeRequire('./pixel-pool.js', []);
+const filmsData = safeRequire('./films.json', []);
+const questionsData = safeRequire('./questions.json', {});
+const karmaPack = safeRequire('./karma-pack.json', {});
+const partyPrompts = safeRequire('./party-prompts.json', {});
+const bonusScenes = safeRequire('./bonus-scenes.json', []);
+const bonusTrivia = safeRequire('./bonus-trivia.json', []);
 
 const app = express();
 const server = http.createServer(app);
@@ -17,147 +31,46 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Düzeltilmiş regex kaçış yardımcısı (SyntaxError: Invalid regular expression giderildi)
+// Düzeltilmiş regex kaçış yardımcısı
 const escRe = s => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 app.use(express.static(__dirname));
 
-const GAME_MODES = [
+const FALLBACK_FILM_ROUNDS = [
   {
-    id: 'dogru-yanlis',
-    title: 'Doğru mu Yanlış mı?',
-    desc: 'Şaşırtıcı bilgiler, hızlı karar',
-    players: '2–10 kişi',
-    duration: '~5 dk',
-    difficulty: 'Orta',
-    icon: '✅',
-    howToPlay: 'Ekrandaki iddianın Doğru mu yoksa Yanlış mı olduğunu en hızlı şekilde seç. Doğru cevaplar puan kazandırır.'
-  },
-  {
-    id: 'en-yakin-cevap',
-    title: 'En Yakın Cevabı Bul',
-    desc: 'Sayıya en çok yaklaşan kazanır',
-    players: '2–10 kişi',
-    duration: '~5 dk',
-    difficulty: 'Orta',
-    icon: '🎯',
-    howToPlay: 'Soru için sayısal tahminini gir. Gerçek sonuca en yakın tahmini yapan oyuncular puan alır.'
-  },
-  {
-    id: 'hizli-quiz',
-    title: 'Hızlı Quiz',
-    desc: '4 şık, hız bonuslu yarış',
-    players: '2–10 kişi',
-    duration: '~5 dk',
-    difficulty: 'Orta',
-    icon: '🧠',
-    howToPlay: '4 seçenek arasından doğru şıkkı işaretle. Hem doğruluk hem de yanıt hızı toplam puanını etkiler.'
-  },
-  {
-    id: 'hangisi-yalan',
-    title: 'Hangisi Yalan?',
-    desc: 'Bilgilerden yalanı yakala',
-    players: '2–10 kişi',
-    duration: '~5 dk',
-    difficulty: 'Orta',
-    icon: '🕵️',
-    howToPlay: 'Sunulan ifadeler arasındaki uydurma/yanlış bilgiyi tespit et ve o seçeneğe oy ver.'
-  },
-  {
-    id: 'kimi-secerdin',
-    title: 'Kimi Seçerdin?',
-    desc: 'İki seçenek, çoğunluk puan alır',
-    players: '2–10 kişi',
-    duration: '~5 dk',
-    difficulty: 'Orta',
-    icon: '🤔',
-    howToPlay: 'İki senaryo veya seçenekten sana uygun olanı seç. Odadaki çoğunlukla aynı kararı verirsen puan kazanırsın.'
-  },
-  {
-    id: 'kim-daha-olasi',
-    title: 'Kim Daha Olası?',
-    desc: 'Arkadaşlarından birini seç',
-    players: '2–10 kişi',
-    duration: '~5 dk',
-    difficulty: 'Orta',
-    icon: '👀',
-    howToPlay: 'Okunan duruma en uygun olduğunu düşündüğün oyuncuyu seç. En çok oy alan kişi veya doğru tahmin edenler öne geçer.'
-  },
-  {
-    id: 'emojiden-tahmin',
-    title: 'Emojiden Tahmin Et',
-    desc: 'Emojiler hangi film, dizi veya oyun?',
-    players: '2–10 kişi',
-    duration: '~5 dk',
-    difficulty: 'Orta',
-    icon: '🎬',
-    howToPlay: 'Verilen emoji dizisinin hangi film, dizi veya oyunu anlattığını yazarak tahmin et.'
-  },
-  {
-    id: 'codenames',
-    title: 'Codenames',
-    desc: '5x5 gizli kelime tahtası (2 Takım)',
-    players: '4–10 kişi',
-    duration: '~8 dk',
-    difficulty: 'Orta',
-    icon: '🗂️',
-    howToPlay: 'İki takım kendi kelimelerini ipuçları üzerinden bulmaya çalışır. Gizli kelimeleri hatasız açan takım kazanır.'
-  },
-  {
-    id: 'vampir-koylu',
-    title: 'Vampir Köylü',
-    desc: 'Gece-gündüz gizli rol ve oylama',
-    players: '5–10 kişi',
-    duration: '~10 dk',
-    difficulty: 'Orta',
-    icon: '🐺',
-    howToPlay: 'Gece rolleri harekete geçer, gündüz tartışma ve oylama ile şüpheli oyuncular elenir.'
-  },
-  {
-    id: 'imposter',
-    title: 'Imposter – Gizli Kelime',
-    desc: 'Farklı kelimeyi alan kişiyi bul',
-    players: '4–10 kişi',
-    duration: '~7 dk',
-    difficulty: 'Orta',
-    icon: '🎭',
-    howToPlay: 'Herkese gizli bir kelime verilir; imposter farklı veya eksik ipucuna sahiptir. İpuçlarından imposter’ı bul.'
-  },
-  {
-    id: 'sarkiyi-ilk-sen-bil',
-    title: 'Şarkıyı İlk Sen Bil!',
-    desc: 'Kısa dinletiden şarkıyı hemen bil',
-    players: '2–10 kişi',
-    duration: '~6 dk',
-    difficulty: 'Orta',
-    icon: '🎵',
-    howToPlay: 'Kısa parça veya ipucu açıldıkça şarkı adını ya da sanatçıyı ilk bilen puanı kapar.'
-  },
-  {
-    id: 'filmden-kareyi-bil',
-    title: 'Filmden Kareyi Bil!',
-    desc: 'Sahneler açıldıkça filmi tahmin et',
-    players: '2–10 kişi',
-    duration: '~6 dk',
-    difficulty: 'Orta',
-    icon: '🎞️',
-    howToPlay: 'Film karesi netleştikçe ve yeni sahneler açıldıkça film adını yaz. Yazdığın taslak yeni karede silinmez ve iPad klavye açık kalır!'
-  },
-  {
-    id: 'pikseli-ac',
-    title: 'Pikseli Aç',
-    desc: 'Pikseller açıldıkça kim olduğunu bul',
-    players: '2–10 kişi',
-    duration: '~6 dk',
-    difficulty: 'Orta',
-    icon: '🧩',
-    howToPlay: 'Piksel blokları açıldıkça gizlenen kişi, karakter veya nesneyi en erken tahmin etmeye çalış.'
+    id: 'fallback-1',
+    title: 'Sahne #1',
+    answer: 'Interstellar',
+    aliases: ['yildizlararasi', 'yıldızlararası', 'interstellar'],
+    frames: [
+      { label: 'Kare 1 / 4', blur: 18, zoom: 1.36, hint: 'Buzul gezegende dev dalgalar...', caption: 'Zaman farkı sahnesi' },
+      { label: 'Kare 2 / 4', blur: 11, zoom: 1.22, hint: 'Kitaplıktan gelen mesajlar...', caption: 'Boyutlar arası iletişim' },
+      { label: 'Kare 3 / 4', blur: 5, zoom: 1.09, hint: 'Mısır tarlası ve toz...', caption: 'Dünya’dan ayrılış' },
+      { label: 'Kare 4 / 4', blur: 0, zoom: 1.0, hint: 'Endurance uzay gemisi...', caption: 'Interstellar' }
+    ]
   }
 ];
 
 const ALL_FILM_ROUNDS = [
-  ...PIXEL_POOL,
-  ...(bonusContent.bonusScenes || [])
+  ...(Array.isArray(PIXEL_POOL) ? PIXEL_POOL : []),
+  ...(Array.isArray(bonusScenes) ? bonusScenes : [])
+];
+const FILM_ROUNDS = ALL_FILM_ROUNDS.length > 0 ? ALL_FILM_ROUNDS : FALLBACK_FILM_ROUNDS;
+
+const GAME_MODES = [
+  { id: 'dogru-yanlis', title: 'Doğru mu Yanlış mı?', desc: 'Şaşırtıcı bilgiler, hızlı karar', players: '2–10 kişi', duration: '~5 dk', difficulty: 'Orta', icon: '✅', howToPlay: 'Ekrandaki iddianın Doğru mu yoksa Yanlış mı olduğunu en hızlı şekilde seç.' },
+  { id: 'en-yakin-cevap', title: 'En Yakın Cevabı Bul', desc: 'Sayıya en çok yaklaşan kazanır', players: '2–10 kişi', duration: '~5 dk', difficulty: 'Orta', icon: '🎯', howToPlay: 'Soru için sayısal tahminini gir. Gerçek sonuca en yakın tahmini yapan puan alır.' },
+  { id: 'hizli-quiz', title: 'Hızlı Quiz', desc: '4 şık, hız bonuslu yarış', players: '2–10 kişi', duration: '~5 dk', difficulty: 'Orta', icon: '🧠', howToPlay: '4 seçenek arasından doğru şıkkı işaretle.' },
+  { id: 'hangisi-yalan', title: 'Hangisi Yalan?', desc: 'Bilgilerden yalanı yakala', players: '2–10 kişi', duration: '~5 dk', difficulty: 'Orta', icon: '🕵️', howToPlay: 'Sunulan ifadeler arasındaki yanlış bilgiyi tespit et.' },
+  { id: 'kimi-secerdin', title: 'Kimi Seçerdin?', desc: 'İki seçenek, çoğunluk puan alır', players: '2–10 kişi', duration: '~5 dk', difficulty: 'Orta', icon: '🤔', howToPlay: 'İki seçenekten sana uygun olanı seç.' },
+  { id: 'kim-daha-olasi', title: 'Kim Daha Olası?', desc: 'Arkadaşlarından birini seç', players: '2–10 kişi', duration: '~5 dk', difficulty: 'Orta', icon: '👀', howToPlay: 'Okunan duruma en uygun oyuncuyu seç.' },
+  { id: 'emojiden-tahmin', title: 'Emojiden Tahmin Et', desc: 'Emojiler hangi film, dizi veya oyun?', players: '2–10 kişi', duration: '~5 dk', difficulty: 'Orta', icon: '🎬', howToPlay: 'Emoji dizisinin hangi yapım olduğunu tahmin et.' },
+  { id: 'codenames', title: 'Codenames', desc: '5x5 gizli kelime tahtası (2 Takım)', players: '4–10 kişi', duration: '~8 dk', difficulty: 'Orta', icon: '🗂️', howToPlay: 'İki takım kendi kelimelerini ipuçları üzerinden bulur.' },
+  { id: 'vampir-koylu', title: 'Vampir Köylü', desc: 'Gece-gündüz gizli rol ve oylama', players: '5–10 kişi', duration: '~10 dk', difficulty: 'Orta', icon: '🐺', howToPlay: 'Gece rolleri ve gündüz oylaması ile oyun sürer.' },
+  { id: 'imposter', title: 'Imposter – Gizli Kelime', desc: 'Farklı kelimeyi alan kişiyi bul', players: '4–10 kişi', duration: '~7 dk', difficulty: 'Orta', icon: '🎭', howToPlay: 'Farklı kelimeye sahip kişiyi ipuçlarından bul.' },
+  { id: 'sarkiyi-ilk-sen-bil', title: 'Şarkıyı İlk Sen Bil!', desc: 'Kısa dinletiden şarkıyı hemen bil', players: '2–10 kişi', duration: '~6 dk', difficulty: 'Orta', icon: '🎵', howToPlay: 'Kısa parça veya ipucu açıldıkça şarkıyı bil.' },
+  { id: 'filmden-kareyi-bil', title: 'Filmden Kareyi Bil!', desc: 'Sahneler açıldıkça filmi tahmin et', players: '2–10 kişi', duration: '~6 dk', difficulty: 'Orta', icon: '🎞️', howToPlay: 'Sahneler açıldıkça film adını yaz. Yazdığın taslak silinmez ve klavye açık kalır.' },
+  { id: 'pikseli-ac', title: 'Pikseli Aç', desc: 'Pikseller açıldıkça kim olduğunu bul', players: '2–10 kişi', duration: '~6 dk', difficulty: 'Orta', icon: '🧩', howToPlay: 'Pikseller açıldıkça gizlenen kişiyi veya karakteri tahmin et.' }
 ];
 
 const rooms = new Map();
@@ -203,7 +116,7 @@ function serializeRoom(room) {
     guessedCurrentFrame: Boolean(p.guessedCurrentFrame)
   }));
 
-  const currentRound = ALL_FILM_ROUNDS[room.roundIndex % ALL_FILM_ROUNDS.length];
+  const currentRound = FILM_ROUNDS[room.roundIndex % FILM_ROUNDS.length];
   const currentFrame = currentRound.frames[room.frameIndex % currentRound.frames.length];
 
   return {
@@ -214,19 +127,14 @@ function serializeRoom(room) {
     selectedMode: room.selectedMode,
     players,
     filmGame: {
-      roundNumber: (room.roundIndex % ALL_FILM_ROUNDS.length) + 1,
-      totalRounds: ALL_FILM_ROUNDS.length,
+      roundNumber: (room.roundIndex % FILM_ROUNDS.length) + 1,
+      totalRounds: FILM_ROUNDS.length,
       roundTitle: currentRound.title,
       frameIndex: room.frameIndex,
       totalFrames: currentRound.frames.length,
       frame: currentFrame,
       lastWinner: room.lastWinner || null,
       revealedAnswer: room.status === 'ended' ? currentRound.answer : null
-    },
-    contentCounts: {
-      films: (contentPack.films || []).length,
-      extraPrompts: (extraContent.partyPrompts.wouldYouRather || []).length,
-      bonusScenes: (bonusContent.bonusScenes || []).length
     },
     feed: room.feed.slice(-25)
   };
@@ -353,7 +261,7 @@ io.on('connection', socket => {
     if (!room || room.status !== 'playing') return;
     if (room.hostId !== socket.id) return;
 
-    const round = ALL_FILM_ROUNDS[room.roundIndex % ALL_FILM_ROUNDS.length];
+    const round = FILM_ROUNDS[room.roundIndex % FILM_ROUNDS.length];
     for (const p of room.players.values()) {
       p.guessedCurrentFrame = false;
     }
@@ -364,7 +272,7 @@ io.on('connection', socket => {
     } else {
       room.roundIndex += 1;
       room.frameIndex = 0;
-      const nextRound = ALL_FILM_ROUNDS[room.roundIndex % ALL_FILM_ROUNDS.length];
+      const nextRound = FILM_ROUNDS[room.roundIndex % FILM_ROUNDS.length];
       pushFeed(room, `Yeni film turuna geçildi: ${nextRound.title}`, 'info');
     }
 
@@ -384,7 +292,7 @@ io.on('connection', socket => {
     const rawGuess = String(guess || '').trim();
     if (!rawGuess) return;
 
-    const round = ALL_FILM_ROUNDS[room.roundIndex % ALL_FILM_ROUNDS.length];
+    const round = FILM_ROUNDS[room.roundIndex % FILM_ROUNDS.length];
     const normGuess = normalizeText(rawGuess);
     const validTargets = [round.answer, ...(round.aliases || [])].map(normalizeText);
     const isCorrect = validTargets.includes(normGuess);
@@ -444,16 +352,19 @@ app.get('/api/modes', (req, res) => {
   res.json({ modes: GAME_MODES });
 });
 
-app.get('/api/content-summary', (req, res) => {
+app.get('/api/content-status', (req, res) => {
   res.json({
-    dataPoolCount: PIXEL_POOL.length,
-    content: contentPack,
-    extraContent,
-    bonusContent
+    pixelPoolCount: Array.isArray(PIXEL_POOL) ? PIXEL_POOL.length : 0,
+    filmsCount: Array.isArray(filmsData) ? filmsData.length : 0,
+    hasQuestions: Boolean(questionsData && Object.keys(questionsData).length),
+    hasKarmaPack: Boolean(karmaPack && Object.keys(karmaPack).length),
+    hasPartyPrompts: Boolean(partyPrompts && Object.keys(partyPrompts).length),
+    bonusScenesCount: Array.isArray(bonusScenes) ? bonusScenes.length : 0,
+    bonusTriviaCount: Array.isArray(bonusTrivia) ? bonusTrivia.length : 0
   });
 });
 
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
